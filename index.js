@@ -205,6 +205,24 @@ app.get("/tutors/:id",async(req,res)=>{
   res.json(result)
 })
 
+app.get("/tutors",async(req,res)=>{
+  const {search}= req.query;
+  let query={};
+  if(search){
+    query.tutorname={
+      $regex:search,
+      $options:"i"
+    }
+  }
+  const result= await tutorCollection.find(query).toArray();
+  res.json()
+})
+app.get("/featured-tutors",async(req,res)=>{
+  const result= await tutorCollection
+  .find().limit(6).toArray();
+  res.json(result)
+})
+
 
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
