@@ -78,7 +78,7 @@ return res.status(403).json({message:"Forbidden"})
 async function run() {
   try {
     
-    // await client.connect();
+    
    const db= client.db("tutor-find")
    const tutorCollection= db.collection("tutors")
    const bookingCollection=db.collection("bookings")
