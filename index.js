@@ -28,7 +28,7 @@ const client = new MongoClient(uri, {
 const normalizeDate = (dateStr) => {
   if (!dateStr) return null;
 
-  // already Date object
+
   if (dateStr instanceof Date) {
     return dateStr.getTime();
   }
