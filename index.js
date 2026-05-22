@@ -33,7 +33,7 @@ const normalizeDate = (dateStr) => {
     return dateStr.getTime();
   }
 
-  // timestamp
+ 
   if (typeof dateStr === "number") {
     return dateStr;
   }
