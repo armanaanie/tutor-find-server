@@ -11,7 +11,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const uri =process.env.MONGO_DB_URI;
 const app= express()
-const PORT =process.env.PORT;
+const PORT =process.env.PORT || 5000;
 
 
 app.use(cors())
@@ -24,7 +24,29 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+const normalizeDate = (dateStr) => {
+  if (!dateStr) return null;
 
+  // already Date object
+  if (dateStr instanceof Date) {
+    return dateStr.getTime();
+  }
+
+  // timestamp
+  if (typeof dateStr === "number") {
+    return dateStr;
+  }
+
+  // must be string
+  if (typeof dateStr !== "string") {
+    console.log("Invalid date:", dateStr);
+    return null;
+  }
+
+  const [day, month, year] = dateStr.split("/");
+
+  return new Date(`${year}-${month}-${day}`).getTime();
+};
 async function run() {
   try {
     
@@ -34,11 +56,46 @@ async function run() {
    const bookingCollection=db.collection("bookings")
 
 app.get("/tutors",async(req,res)=>{
+ const { search, startDate, endDate } = req.query;
+console.log("QUERY:", req.query);
+console.log("SEARCH:", req.query.search);
+      let query={};
+      
+      if (search) {
+        
+            
+             query.tutorname= {
+                $regex: search,
+                $options: 'i',
+              };
+            
+          
+            }
 
- const result= await tutorCollection.find().toArray();
-res.json(result)
+      let result = await tutorCollection.find(query).toArray();
+
+     const start = startDate ? new Date(startDate).getTime() : null;
+const end = endDate ? new Date(endDate).getTime() : null;
+
+if (start || end) {
+  result = result.filter((tutor) => {
+    const tutorDate = normalizeDate(tutor.sessionDate);
+
+    if (!tutorDate) return false;
+
+    if (start && tutorDate < start) return false;
+    if (end && tutorDate > end) return false;
+
+    return true;
+  });
+}
+      
+      res.json(result);
+  
+
 
 })  
+
 
 app.post("/tutors",async(req,res)=>{
  const tutorData= req.body;
@@ -122,7 +179,7 @@ const existingBooking = await bookingCollection.findOne({
 if (existingBooking) {
   return res.status(400).json({
     success: false,
-    message: "Error!",
+    message: "You already book the session",
   });
 }
 const newBooking={tutorId,tutorname,userId,phone,name,email,bookingStatus:"confirmed",createdAt:new Date()}
@@ -205,18 +262,7 @@ app.get("/tutors/:id",async(req,res)=>{
   res.json(result)
 })
 
-app.get("/tutors",async(req,res)=>{
-  const {search}= req.query;
-  let query={};
-  if(search){
-    query.tutorname={
-      $regex:search,
-      $options:"i"
-    }
-  }
-  const result= await tutorCollection.find(query).toArray();
-  res.json()
-})
+
 app.get("/featured-tutors",async(req,res)=>{
   const result= await tutorCollection
   .find().limit(6).toArray();
