@@ -38,7 +38,7 @@ const normalizeDate = (dateStr) => {
     return dateStr;
   }
 
-  // must be string
+
   if (typeof dateStr !== "string") {
     console.log("Invalid date:", dateStr);
     return null;
