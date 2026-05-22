@@ -8,6 +8,7 @@ const dotenv=require("dotenv")
 dotenv.config()
 const cors=require("cors")
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 
 const uri =process.env.MONGO_DB_URI;
 const app= express()
@@ -47,10 +48,37 @@ const normalizeDate = (dateStr) => {
 
   return new Date(`${year}-${month}-${day}`).getTime();
 };
+
+const JWKS= createRemoteJWKSet(
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+)
+const verifyToken= async (req,res,next)=>{
+  const authHeader= req?.headers.authorization;
+  if(!authHeader){
+    return res.status(401).json({message:"Unauthorized"})
+  }
+  const token = authHeader.split(" ")[1];
+  if(!token){
+    return res.status(401).json({message:"Unauthorized"})
+  }
+  try{
+    const {payload}=await jwtVerify(token,JWKS);
+   
+  console.log(payload)
+  next()
+  }
+  catch(error){
+return res.status(403).json({message:"Forbidden"})
+  };
+  
+
+
+  
+}
 async function run() {
   try {
     
-    await client.connect();
+    // await client.connect();
    const db= client.db("tutor-find")
    const tutorCollection= db.collection("tutors")
    const bookingCollection=db.collection("bookings")
@@ -97,14 +125,14 @@ if (start || end) {
 })  
 
 
-app.post("/tutors",async(req,res)=>{
+app.post("/tutors",verifyToken,async(req,res)=>{
  const tutorData= req.body;
  console.log(tutorData)
  const result= await tutorCollection.insertOne(tutorData)
 res.json(result)
 
 })
-app.patch("/tutors/:id",async(req,res)=>{
+app.patch("/tutors/:id",verifyToken,async(req,res)=>{
  const {id}= req.params;
  const updateData=req.body
  
@@ -115,7 +143,7 @@ app.patch("/tutors/:id",async(req,res)=>{
 res.json(result)
 
 })
-app.delete("/tutors/:id",async(req,res)=>{
+app.delete("/tutors/:id",verifyToken,async(req,res)=>{
  const {id}= req.params;
  
  
@@ -198,7 +226,7 @@ res.json({
 });
 })
 
-app.patch("/bookings/:id",async(req,res)=>{
+app.patch("/bookings/:id",verifyToken,async(req,res)=>{
   try{
    const { id } = req.params;
    const booking = await bookingCollection.findOne({
@@ -270,7 +298,7 @@ app.get("/featured-tutors",async(req,res)=>{
 })
 
 
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     
